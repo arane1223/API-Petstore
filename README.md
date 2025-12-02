@@ -52,7 +52,7 @@ src/test/
 │   ├── data/                           # Тестовые данные и енумы
 │   │   ├── OrderStatus.java            # Enum статусов заказа
 │   │   ├── PetStatus.java              # Enum статусов питомца
-│   │   └── TestData.java               # Класс для создания тестовых данных
+│   │   └── TestData.java               # Класс для тестовых данных
 │   │
 │   ├── helpers/                        # Вспомогательные классы
 │   │   ├── ApiTestHelpers.java         # REST методы (GET, POST, PUT, DELETE)
