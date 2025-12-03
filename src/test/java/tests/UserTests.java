@@ -2,12 +2,14 @@ package tests;
 
 import data.TestData;
 import io.qameta.allure.*;
+import io.restassured.response.Response;
 import models.ApiResponseModel;
 import models.UserModel;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import utils.RandomUtils;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -82,6 +84,22 @@ public class UserTests extends TestBase {
     }
 
     @Test
+    @Story("Получение пользователя")
+    @DisplayName("Неуспешное получение пользователя со случайным username")
+    void unsuccessfulGettingUserWithRandomUsernameTest() {
+        String testUsername = step("Сгенерировать username", RandomUtils::getRandomUserName);
+
+        ApiResponseModel response = step("Отправить запрос на получение пользователя", () ->
+                executeGet("user/{username}", testUsername, 404).as(ApiResponseModel.class));
+
+        step("Проверить ответ", () -> {
+            assertThat(response.getCode()).isEqualTo(1);
+            assertThat(response.getType()).isEqualTo("error");
+            assertThat(response.getMessage()).isEqualTo("User not found");
+        });
+    }
+
+    @Test
     @Story("Обновление пользователя")
     @DisplayName("Успешное обновление пользователя по username")
     void successfulUpdateUserWithUsernameTest() {
@@ -113,13 +131,60 @@ public class UserTests extends TestBase {
                 executePost("user", testUser, 200)); // TODO: должен быть 201
 
         ApiResponseModel response = step("Отправить запрос на удаление пользователя", () ->
-                executeDelete("user/{username}", testUser.getUsername(),200)
+                executeDelete("user/{username}", testUser.getUsername(), 200)
                         .as(ApiResponseModel.class));
 
         step("Проверить ответ после удаления", () -> {
             assertThat(response.getCode()).isEqualTo(200);
             assertThat(response.getType()).isEqualTo("unknown");
             assertThat(response.getMessage()).isEqualTo(testUser.getUsername());
+        });
+    }
+
+    @Test
+    @Story("Удаление пользователя")
+    @DisplayName("Неуспешное удаление пользователя со случайным username")
+    void unsuccessfulDeletingUserWithRandomUsernameTest() {
+        String testUsername = step("Создать данные для пользователя", RandomUtils::getRandomUserName);
+
+        Response response = step("Отправить запрос на удаление пользователя", () ->
+                executeDelete("user/{username}", testUsername, 404));
+
+        step("Проверить ответ после удаления", () -> {
+            assertThat(response.getStatusCode()).isEqualTo(404);
+            assertThat(response.getBody().asString()).isEmpty();
+        });
+
+    }
+
+    @Test
+    @Story("Логин")
+    @DisplayName("Успешный логин по username и password")
+    void successfulLoginWithUsernameAndPasswordTest() {
+        String username = step("Сгенерировать username", RandomUtils::getRandomUserName);
+        String password = step("Сгенерировать password", RandomUtils::getRandomPassword);
+
+        ApiResponseModel response = step("Отправить запрос на логин", () ->
+                executeGetForLogin("user/login", username, password, 200).as(ApiResponseModel.class));
+
+        step("Проверить ответ", () -> {
+            assertThat(response.getCode()).isEqualTo(200);
+            assertThat(response.getType()).isEqualTo("unknown");
+            assertThat(response.getMessage()).contains("logged in user session");
+        });
+    }
+
+    @Test
+    @Story("Логаут")
+    @DisplayName("Успешный выход из системы")
+    void successfulLogoutTest() {
+        ApiResponseModel response = step("Отправить запрос на выход из системы", () ->
+                executeGet("user/logout", 200).as(ApiResponseModel.class));
+
+        step("Проверить ответ", () -> {
+            assertThat(response.getCode()).isEqualTo(200);
+            assertThat(response.getType()).isEqualTo("unknown");
+            assertThat(response.getMessage()).contains("ok");
         });
     }
 }
